@@ -86,12 +86,13 @@ contract SocialGoodToken {
     // buy tokens from us/charity
     function buyTokens() public payable returns (uint tokens) {
         require(msg.value > 0, "Gotta spend some to get some, yo");
-        uint256 amountToBuy = msg.value * ethTokenConversionRate;
+        uint256 amountToBuy = msg.value * ethTokenConversionRate / 100;
         uint256 tokensLeft = balances[charity];
         require(tokensLeft >= amountToBuy, "sorry, we ran out of tokens please try again later or buy a smaller amount");
         (bool sent) = transferFrom(charity, msg.sender, amountToBuy);
         require(sent, "Failed to transfer tokens");
         emit Buy(msg.sender, msg.value, amountToBuy);
+        ethTokenConversionRate = ethTokenConversionRate / 100 * 69;
         return amountToBuy;
     }
     
@@ -107,6 +108,7 @@ contract SocialGoodToken {
         require(sent, "Failed to transfer tokens");
         (sent,) = msg.sender.call{value: ethRequired}("");
         require(sent, "Failed to send ETH to seller");
+        ethTokenConversionRate = ethTokenConversionRate * 100 / 69;
     }
     
     // cash out yo!
