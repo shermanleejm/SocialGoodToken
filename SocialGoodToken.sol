@@ -1,6 +1,13 @@
 pragma solidity >=0.5.16;
 // SPDX-License-Identifier: MIT
 
+// parties involed
+// 1. SocialGoodCompany (i.e. us lmao)
+// 2. Participant (e.g. manufacturing companies in carbon offset, schools whose students and the target)
+// 3. Individual investors
+// 4. Government (for encashing purposes (only for participants) --> converting tokens to monetary value)
+// 5. Verifier
+
 library SafeMath { 
     function add(uint256 x, uint256 y) internal pure returns (uint256) {
       uint256 z = x + y;
@@ -23,9 +30,10 @@ contract SocialGoodToken {
     uint8 public constant decimals = 18;  
     string public name = "SocialGoodToken";
     string public symbol = "SGT";
-    uint256 totalSupply_;
+    uint256 totalSupply_ = 0;
     uint256 public ethTokenConversionRate = 100;
     address public charity;
+    mapping(address => uint) public socialGoodAddressSizes;
 
     mapping(address => uint256) balances;
     mapping(address => mapping (address => uint256)) delegates;
@@ -36,7 +44,7 @@ contract SocialGoodToken {
     	symbol = _symbol;
     	balances[msg.sender] = totalSupply_;
     	charity = msg.sender;
-    }  
+    }
 
     function totalSupply() public view returns (uint256) {
 	    return totalSupply_;
@@ -46,8 +54,12 @@ contract SocialGoodToken {
 	    return balances[charity];
     }
     
-    function balanceOf(address tokenOwner) public view returns (uint) {
+    function balanceOf(address tokenOwner) public view returns (uint256) {
         return balances[tokenOwner];
+    }
+
+    function checkOwnBalance() public view returns (uint256) {
+        return balances[msg.sender];
     }
     
     // basic transfer function 
@@ -119,5 +131,24 @@ contract SocialGoodToken {
         (bool sent,) = msg.sender.call{value: address(this).balance}("");
         require(sent, "Failed to send ETH balance back to the owner");
     }
+
+    // TODO: iot stuff --> mining process
+    // upload data from iot {hash: timestamp}
+    // verify data 
+    // student come in --> generate 1 token
+    function recordSocialGood(string memory hash) public {
+        socialGood[msg.sender] = hash;
+    }
+
+    function viewPendingSocialGood() public view returns (socialGood[] memory) {
+        socialGood[] memory ret = new socialGood[]();
+    }
+
+    // Verify
+
+    // encash tokens --> destroy tokens
+    // 1. buy token
+    // 2. sell token to government for subisidies
+    // 3. tokens that are sold gets destroyed
 }
 
