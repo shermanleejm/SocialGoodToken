@@ -205,8 +205,8 @@ contract SocialGoodToken {
                 j++;
             }
         }
-        balances[pAdd] += tokens;
-        balances[msg.sender] += tokens / 100 * 5;
+        balances[pAdd] = balances[pAdd].add(tokens);
+        balances[msg.sender] = balances[msg.sender].add(tokens / 100 * 5);
     }
 
     // encash tokens --> destroy tokens
@@ -215,7 +215,7 @@ contract SocialGoodToken {
     // 3. tokens that are sold gets destroyed
     function encash(uint256 amount) public {
         require(balances[msg.sender] > amount, "You dont have enough tokens to encash"); 
-        balances[msg.sender] -= amount;
+        balances[msg.sender] = balances[msg.sender].sub(amount);
         emit Encash(msg.sender, amount);
     }
 }
