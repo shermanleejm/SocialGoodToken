@@ -26,6 +26,7 @@ contract SocialGoodToken {
     event Transfer(address indexed from, address indexed to, uint tokens);
     event Buy(address buyer, uint256 amountOfETH, uint256 amountOfTokens);
     event Sell(address seller, uint256 amountOfTokens, uint256 amountOfETH);
+    event Encash(address participantAddress, uint256 amountOfTokens);
     
     uint8 public constant decimals = 18;  
     string public name = "SocialGoodToken";
@@ -33,7 +34,6 @@ contract SocialGoodToken {
     uint256 totalSupply_ = 0;
     uint256 public ethTokenConversionRate = 100;
     address public charity;
-    mapping(address => uint) public socialGoodAddressSizes;
 
     mapping(address => uint256) balances;
     mapping(address => mapping (address => uint256)) delegates;
@@ -136,19 +136,87 @@ contract SocialGoodToken {
     // upload data from iot {hash: timestamp}
     // verify data 
     // student come in --> generate 1 token
-    function recordSocialGood(string memory hash) public {
-        socialGood[msg.sender] = hash;
+    struct SocialGood {
+        address participant;
+        string hash;
+        string timestamp;
+    }
+    mapping(address => SocialGood[]) participantSocialGoodMap;
+    mapping(address => uint) participantSocialGoodSizes;
+    mapping(address => bool) recordedParticipantsExists;
+    address[] recordedParticipants;
+
+    function recordSocialGood(string memory _hash, string memory _timestamp) public {      
+        if (recordedParticipantsExists[msg.sender] == false) {
+        recordedParticipantsExists[msg.sender] = true;
+            recordedParticipants.push(msg.sender);
+        }
+        SocialGood memory sg = SocialGood({participant: msg.sender, hash:_hash, timestamp: _timestamp});
+        participantSocialGoodMap[msg.sender].push(sg);
+        participantSocialGoodSizes[msg.sender]++;
     }
 
-    function viewPendingSocialGood() public view returns (socialGood[] memory) {
-        socialGood[] memory ret = new socialGood[]();
+    // returns timestamps for all the participants social good
+    // verifiers use the timestamp and gathers the hashes for the particular timestamp
+    function viewPendingSocialGood(address pAdd) public view returns (string[] memory) {
+        uint _size = participantSocialGoodSizes[pAdd];
+        require(_size > 0, "This participant has no social good to verify");
+        string[] memory res = new string[](_size);
+        for (uint i=0; i < _size; i++) {
+            SocialGood storage sg = participantSocialGoodMap[pAdd][i];
+            res[i] = sg.timestamp;
+        }
+        return res;
+    }
+
+    // Adds new verifiers 
+    // users can sign up to become a verifier
+    mapping (address => bool) verifierMap;
+    function addNewVerifier(address verifierAddress) public {
+        require(msg.sender == charity, "This function is only for the owner to use");
+        verifierMap[verifierAddress] = true;
     }
 
     // Verify
+    // takes in an array of hashes ordered by timestamp from previous function
+    // verifies hashes with participants hashes
+    // valid hashes awards one token to participant
+    // verifier gets a kickback
+    function verifyPendingSocialGood(string[] memory valid, address pAdd) public {
+        require(verifierMap[msg.sender] == true, "You are not a valid verifier. Please contact us to become one today!");
+        require(recordedParticipantsExists[msg.sender] == true, "Participant does not have any social good to verify");
+        require(valid.length == participantSocialGoodMap[pAdd].length, "The input array is not the same length as the participant's");
+
+        SocialGood[] memory toBeVerified = participantSocialGoodMap[pAdd];
+        uint tokens = 0;
+        uint invalidCount = 0;
+        for (uint i=0; i < valid.length; i++) {
+            if (keccak256(abi.encodePacked(valid[i])) == keccak256(abi.encodePacked(toBeVerified[i].hash))) {
+                tokens++;
+            } else {
+                invalidCount++;
+            }
+        }
+        SocialGood[] memory invalid = new SocialGood[](invalidCount);
+        uint j = 0;
+        for (uint i=0; i < valid.length; i++) {
+            if (keccak256(abi.encodePacked(valid[i])) != keccak256(abi.encodePacked(toBeVerified[i].hash))) {
+                invalid[j] = toBeVerified[i];
+                j++;
+            }
+        }
+        balances[pAdd] += tokens;
+        balances[msg.sender] += tokens / 100 * 5;
+    }
 
     // encash tokens --> destroy tokens
     // 1. buy token
     // 2. sell token to government for subisidies
     // 3. tokens that are sold gets destroyed
+    function encash(uint256 amount) public {
+        require(balances[msg.sender] > amount, "You dont have enough tokens to encash"); 
+        balances[msg.sender] -= amount;
+        emit Encash(msg.sender, amount);
+    }
 }
 
