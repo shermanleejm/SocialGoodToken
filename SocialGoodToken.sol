@@ -32,7 +32,7 @@ contract SocialGoodToken {
     string public name = "SocialGoodToken";
     string public symbol = "SGT";
     uint256 totalSupply_ = 0;
-    uint256 public ethTokenConversionRate = 100;
+    uint256 public ethTokenConversionRate = 1000;
     address public charity;
 
     mapping(address => uint256) balances;
@@ -96,31 +96,26 @@ contract SocialGoodToken {
     }
     
     // buy tokens from us/charity
-    function buyTokens() public payable returns (uint tokens) {
-        require(msg.value > 0, "Gotta spend some to get some, yo");
-        uint256 amountToBuy = msg.value * ethTokenConversionRate / 100;
-        uint256 tokensLeft = balances[charity];
-        require(tokensLeft >= amountToBuy, "sorry, we ran out of tokens please try again later or buy a smaller amount");
-        (bool sent) = transferFrom(charity, msg.sender, amountToBuy);
-        require(sent, "Failed to transfer tokens");
-        emit Buy(msg.sender, msg.value, amountToBuy);
-        ethTokenConversionRate = ethTokenConversionRate / 100 * 69;
-        return amountToBuy;
+    // Exchnage rate = 1 wei to 5 tokens
+    // buy: 50
+    // msg.value = 10 wei
+    // _amount = 50 tokens
+    function buyTokens(uint256 _amount) public payable {
+        require (msg.value * ethTokenConversionRate >= _amount, "Spend some to get some, yo");
+        balances[charity] = balances[charity].sub(_amount);
+        balances[msg.sender] = balances[msg.sender].add(_amount);
+        ethTokenConversionRate = ethTokenConversionRate * 69 / 100;
+        emit Buy(msg.sender, msg.value, _amount);
     }
     
     // sell tokens back to us/charity
-    function sellTokens(uint numTokens) public {
-        require(numTokens > 0, "Please choose a non-zero amount");
-        uint256 userBalance = balances[msg.sender];
-        require(userBalance >= numTokens, "You do not have enough tokens");
-        uint256 ethRequired = numTokens / ethTokenConversionRate;
-        uint256 ownerEthBalance = address(this).balance;
-        require(ownerEthBalance >= ethRequired, "Sorry we do not have enough ETH for this transaction");
-        (bool sent) = transferFrom(msg.sender, address(this), numTokens);
-        require(sent, "Failed to transfer tokens");
-        (sent,) = msg.sender.call{value: ethRequired}("");
-        require(sent, "Failed to send ETH to seller");
-        ethTokenConversionRate = ethTokenConversionRate * 100 / 69;
+    function sellTokens(uint _amount) public {
+        require(balances[msg.sender] >= _amount, "You dont have enough tokens");
+        balances[msg.sender] = balances[msg.sender].sub(_amount);
+        balances[charity] = balances[charity].add(_amount);
+        payable(msg.sender).transfer(_amount * ethTokenConversionRate);
+        emit Sell(msg.sender, _amount, _amount * ethTokenConversionRate);
+        ethTokenConversionRate = ethTokenConversionRate / 69 * 100;
     }
     
     // cash out yo!
@@ -132,7 +127,6 @@ contract SocialGoodToken {
         require(sent, "Failed to send ETH balance back to the owner");
     }
 
-    // TODO: iot stuff --> mining process
     // upload data from iot {hash: timestamp}
     // verify data 
     // student come in --> generate 1 token
@@ -148,7 +142,7 @@ contract SocialGoodToken {
 
     function recordSocialGood(string memory _hash, string memory _timestamp) public {      
         if (recordedParticipantsExists[msg.sender] == false) {
-        recordedParticipantsExists[msg.sender] = true;
+            recordedParticipantsExists[msg.sender] = true;
             recordedParticipants.push(msg.sender);
         }
         SocialGood memory sg = SocialGood({participant: msg.sender, hash:_hash, timestamp: _timestamp});
@@ -171,7 +165,7 @@ contract SocialGoodToken {
 
     // Adds new verifiers 
     // users can sign up to become a verifier
-    mapping (address => bool) verifierMap;
+    mapping (address => bool) public verifierMap;
     function addNewVerifier(address verifierAddress) public {
         require(msg.sender == charity, "This function is only for the owner to use");
         verifierMap[verifierAddress] = true;
@@ -184,7 +178,7 @@ contract SocialGoodToken {
     // verifier gets a kickback
     function verifyPendingSocialGood(string[] memory valid, address pAdd) public {
         require(verifierMap[msg.sender] == true, "You are not a valid verifier. Please contact us to become one today!");
-        require(recordedParticipantsExists[msg.sender] == true, "Participant does not have any social good to verify");
+        require(recordedParticipantsExists[pAdd] == true, "Participant does not have any social good to verify");
         require(valid.length == participantSocialGoodMap[pAdd].length, "The input array is not the same length as the participant's");
 
         SocialGood[] memory toBeVerified = participantSocialGoodMap[pAdd];
