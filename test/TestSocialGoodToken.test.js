@@ -7,6 +7,7 @@ contract('SocialGoodToken', function (accounts) {
   let verifier = accounts[1];
   let buyer = accounts[2];
   let participant = accounts[3];
+  const INITIAL_SUPPLY = 100000;
 
   before(async () => {
     sgt = await SocialGoodToken.deployed();
@@ -29,6 +30,12 @@ contract('SocialGoodToken', function (accounts) {
       let newTokenBalance = await sgt.checkOwnBalance({ from: buyer });
       assert.equal(newTokenBalance, 69 * 2);
     });
+
+    it('can sell tokens using buyer account', async () => {
+      await sgt.sellTokens(6, { from: buyer });
+      let newTokenBalance = await sgt.checkOwnBalance({ from: buyer });
+      assert.equal(newTokenBalance.toNumber(), 132);
+    });
   });
 
   describe('verifier and mining', async () => {
@@ -44,7 +51,7 @@ contract('SocialGoodToken', function (accounts) {
       assert.equal(true, checkVerifier);
     });
 
-    it('can record multiple social good as participant', async () => {
+    it('can record multiple social good using participant address', async () => {
       for (let i = 0; i < socialGoodRecords.length; i++) {
         let record = await sgt.recordSocialGood(
           socialGoodRecords[i][0],
@@ -56,6 +63,33 @@ contract('SocialGoodToken', function (accounts) {
         assert.equal(record.logs[0].args.participantAddress, participant);
         assert.equal(record.logs[0].args.timestamp, socialGoodRecords[i][1]);
       }
+    });
+
+    it('can verify participant social good records', async () => {
+      let toVerify = [];
+      for (let i = 0; i < socialGoodRecords.length; i++) {
+        toVerify.push(socialGoodRecords[i][0]);
+      }
+
+      await sgt.verifyPendingSocialGood(toVerify, participant, {
+        from: verifier,
+      });
+
+      let verifierNewBalance = await sgt.checkOwnBalance({ from: verifier });
+
+      assert.equal(verifierNewBalance, 3);
+
+      let newTotalSupply = await sgt.totalSupply();
+      assert.equal(newTotalSupply.toNumber(), INITIAL_SUPPLY + toVerify.length * 2);
+    });
+  });
+
+  describe('encashment', async () => {
+    it('will decrease total supply when encashing', async () => {
+      let encashTokens = 69;
+      await sgt.encash(encashTokens);
+      let newTotal = await sgt.totalSupply();
+      assert.equal(newTotal.toNumber(), INITIAL_SUPPLY - encashTokens);
     });
   });
 });

@@ -28,6 +28,7 @@ contract SocialGoodToken {
     event Sell(address seller, uint256 amountOfTokens, uint256 amountOfETH);
     event Encash(address participantAddress, uint256 amountOfTokens);
     event NewRecord(address participantAddress, string timestamp);
+    event VerifiedRecord(address verifierAddress, string timestamp);
     
     uint8 public constant decimals = 18;  
     string public name = "SocialGoodToken";
@@ -114,8 +115,8 @@ contract SocialGoodToken {
         require(balances[msg.sender] >= _amount, "You dont have enough tokens");
         balances[msg.sender] = balances[msg.sender].sub(_amount);
         balances[charity] = balances[charity].add(_amount);
-        payable(msg.sender).transfer(_amount * ethTokenConversionRate);
-        emit Sell(msg.sender, _amount, _amount * ethTokenConversionRate);
+        payable(msg.sender).transfer(_amount / ethTokenConversionRate);
+        emit Sell(msg.sender, _amount, _amount / ethTokenConversionRate);
         ethTokenConversionRate = ethTokenConversionRate / 69 * 100;
     }
     
@@ -193,16 +194,20 @@ contract SocialGoodToken {
                 invalidCount++;
             }
         }
-        SocialGood[] memory invalid = new SocialGood[](invalidCount);
-        uint j = 0;
-        for (uint i=0; i < valid.length; i++) {
-            if (keccak256(abi.encodePacked(valid[i])) != keccak256(abi.encodePacked(toBeVerified[i].hash))) {
-                invalid[j] = toBeVerified[i];
-                j++;
-            }
-        }
+        
+        // SocialGood[] memory invalid = new SocialGood[](invalidCount);
+        // uint j = 0;
+        // for (uint i=0; i < valid.length; i++) {
+        //     if (keccak256(abi.encodePacked(valid[i])) != keccak256(abi.encodePacked(toBeVerified[i].hash))) {
+        //         invalid[j] = toBeVerified[i];
+        //         j++;
+        //     }
+        // }
+        // participantSocialGoodMap[pAdd] = invalid;
+
         balances[pAdd] = balances[pAdd].add(tokens);
-        balances[msg.sender] = balances[msg.sender].add(tokens / 100 * 5);
+        balances[msg.sender] = balances[msg.sender].add(tokens);
+        totalSupply_ = totalSupply_.add(tokens * 2);
     }
 
     // encash tokens --> destroy tokens
@@ -213,6 +218,7 @@ contract SocialGoodToken {
         require(balances[msg.sender] > amount, "You dont have enough tokens to encash"); 
         balances[msg.sender] = balances[msg.sender].sub(amount);
         emit Encash(msg.sender, amount);
+        totalSupply_ = totalSupply_.sub(amount);
     }
 }
 
