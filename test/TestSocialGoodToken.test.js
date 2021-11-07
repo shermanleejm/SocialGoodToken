@@ -23,5 +23,39 @@ contract('SocialGoodToken', function (accounts) {
       let checkBalance = await sgt.checkOwnBalance({ from: buyer });
       assert.equal(checkBalance, 69);
     });
+
+    it('can buy tokens using buyer account', async () => {
+      await sgt.buyTokens(69, { from: buyer, value: 50 });
+      let newTokenBalance = await sgt.checkOwnBalance({ from: buyer });
+      assert.equal(newTokenBalance, 69 * 2);
+    });
+  });
+
+  describe('verifier and mining', async () => {
+    let socialGoodRecords = [
+      ['abc', '1234'],
+      ['def', '1235'],
+      ['ghi', '1236'],
+    ];
+
+    it('can add new verifier', async () => {
+      await sgt.addNewVerifier(verifier);
+      let checkVerifier = await sgt.verifierMap.call(verifier);
+      assert.equal(true, checkVerifier);
+    });
+
+    it('can record multiple social good as participant', async () => {
+      for (let i = 0; i < socialGoodRecords.length; i++) {
+        let record = await sgt.recordSocialGood(
+          socialGoodRecords[i][0],
+          socialGoodRecords[i][1],
+          {
+            from: participant,
+          }
+        );
+        assert.equal(record.logs[0].args.participantAddress, participant);
+        assert.equal(record.logs[0].args.timestamp, socialGoodRecords[i][1]);
+      }
+    });
   });
 });

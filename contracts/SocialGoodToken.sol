@@ -27,6 +27,7 @@ contract SocialGoodToken {
     event Buy(address buyer, uint256 amountOfETH, uint256 amountOfTokens);
     event Sell(address seller, uint256 amountOfTokens, uint256 amountOfETH);
     event Encash(address participantAddress, uint256 amountOfTokens);
+    event NewRecord(address participantAddress, string timestamp);
     
     uint8 public constant decimals = 18;  
     string public name = "SocialGoodToken";
@@ -148,6 +149,7 @@ contract SocialGoodToken {
         SocialGood memory sg = SocialGood({participant: msg.sender, hash:_hash, timestamp: _timestamp});
         participantSocialGoodMap[msg.sender].push(sg);
         participantSocialGoodSizes[msg.sender]++;
+        emit NewRecord(msg.sender, _timestamp);
     }
 
     // returns timestamps for all the participants social good
