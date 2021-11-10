@@ -224,6 +224,7 @@ contract SocialGoodToken {
     // 2. sell token to government for subisidies
     // 3. tokens that are sold gets destroyed
     function encash(uint256 amount) public {
+        require(participantMap[msg.sender] == true, "You are not a registered participant");  
         require(balances[msg.sender] > amount, "You dont have enough tokens to encash"); 
         balances[msg.sender] = balances[msg.sender].sub(amount);
         emit Encash(msg.sender, amount);
