@@ -142,7 +142,16 @@ contract SocialGoodToken {
     mapping(address => bool) recordedParticipantsExists;
     address[] recordedParticipants;
 
-    function recordSocialGood(string memory _hash, string memory _timestamp) public {      
+    // Adds new participants 
+    // users can sign up to become a verifier
+    mapping (address => bool) public participantMap;
+    function addNewParticipant(address participantAddress) public {
+        require(msg.sender == charity, "This function is only for the owner to use");
+        participantMap[participantAddress] = true;
+    }
+
+    function recordSocialGood(string memory _hash, string memory _timestamp) public {    
+        require(participantMap[msg.sender] == true, "You are not a registered participant");  
         if (recordedParticipantsExists[msg.sender] == false) {
             recordedParticipantsExists[msg.sender] = true;
             recordedParticipants.push(msg.sender);

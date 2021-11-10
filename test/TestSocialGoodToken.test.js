@@ -3,10 +3,10 @@ const SocialGoodToken = artifacts.require('SocialGoodToken');
 contract('SocialGoodToken', function (accounts) {
   let sgt;
   let expected;
-  let owner = accounts[0];
-  let verifier = accounts[1];
-  let buyer = accounts[2];
-  let participant = accounts[3];
+  let owner = accounts[0]; // 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4
+  let verifier = accounts[1]; // 0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2
+  let buyer = accounts[2]; // 0xCA35b7d915458EF540aDe6068dFe2F44E8fa733c
+  let participant = accounts[3]; // 0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db
   const INITIAL_SUPPLY = 100000;
 
   before(async () => {
@@ -51,6 +51,12 @@ contract('SocialGoodToken', function (accounts) {
       assert.equal(true, checkVerifier);
     });
 
+    it('can add new participant', async () => {
+      await sgt.addNewParticipant(participant);
+      let checkParticipant = await sgt.participantMap.call(participant);
+      assert.equal(true, checkParticipant);
+    });
+
     it('can record multiple social good using participant address', async () => {
       for (let i = 0; i < socialGoodRecords.length; i++) {
         let record = await sgt.recordSocialGood(
@@ -89,7 +95,7 @@ contract('SocialGoodToken', function (accounts) {
       let encashTokens = 69;
       await sgt.encash(encashTokens);
       let newTotal = await sgt.totalSupply();
-      assert.equal(newTotal.toNumber(), INITIAL_SUPPLY - encashTokens);
+      assert.equal(newTotal.toNumber(), INITIAL_SUPPLY - encashTokens + 6);
     });
   });
 });
